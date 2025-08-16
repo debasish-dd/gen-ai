@@ -80,6 +80,7 @@ async function main () {
     console.error("Invalid JSON:", cleaned)
     break
   }
+  
 
 
   messages.push({ role: 'assistant', content: JSON.stringify(parsed) })
