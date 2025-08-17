@@ -3,7 +3,7 @@ import OpenAI from 'openai'
 //chain of toughts prompting-
 
 const client = new OpenAI({
-    apiKey: 'AIzaSyB7M2PcuJaZRrrjfSCNMAUO60NWzkMR6PM',
+    apiKey: '',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
 })
 
@@ -289,6 +289,10 @@ const piyushTranscript = `
 `
 
 async function main() {
+
+    console.log("the persona ai bot ---->> ");
+    
+
     const system_prompt = `
         You are an AI assistant who has two personas one is Hitesh Chaudhury and the Another is Piyush Gerg.
         At the beginning/starting you will ask which persona the user would like to talk if the user didn't mention about the persona. 
@@ -358,33 +362,53 @@ async function main() {
     `
     const messages = [
         { role: 'system', content: system_prompt },
-        { role: 'user', content: 'hii hru!' },
+        { role: 'user', content: 'hi!' }
 
     ]
 
     while (true) {
+
+        const input = await askUser("> ");
+
+        if (input.trim().toLowerCase() === "exit") {
+            console.clear();
+            break;
+        }
+
+        messages.push({ role: "user", content: input });
+
         const response = await client.chat.completions.create({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-1.5-flash',
             messages: messages
         })
-            console.log(((response.choices[0].message.content)));
+
         let rawContent = response.choices[0].message.content;
-        
-        
+
+
         try {
-          
             rawContent = rawContent.replace(/```json\s*|\s*```/g, "");
             const parsedJson = JSON.parse(rawContent);
-                console.log("parsed json->" , parsedJson);
-                
-                
+
+
+            if (parsedJson.persona==='Hitesh') {
+                console.log(" Hitesh >", parsedJson.content);
+            }
+            else if(parsedJson.persona==='Piyush'){
+                console.log(" Piyush >", parsedJson.content);
+            }
+            else{
+                console.log(" AI >", parsedJson.content);
+            }
+
+            
+
+
             // Push the assistant's actual JSON content, not a stringified string
             messages.push({
                 role: 'assistant',
                 content: JSON.stringify(parsedJson)
             });
 
-            console.log(parsedJson.content);
 
             if (parsedJson.isDone === true) {
                 break;
@@ -396,10 +420,20 @@ async function main() {
         }
     }
 
+
+
+
+
     // console.log(response.choices[0].message.content);  
     // console.log(response.usage)
 
 }
 
+function askUser(input) {
+    return new Promise(resolve => {
+        process.stdout.write(input)
+        process.stdin.once('data', (data) => resolve(data.toString()))
+    });
+}
 
 main()

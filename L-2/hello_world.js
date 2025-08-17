@@ -3,7 +3,7 @@ import OpenAI from "openai";
 
 
 const client = new OpenAI({
-    apiKey : 'AIzaSyAzTPoBfz310J9hPT_JsjG15wrXepLNy1U',
+    apiKey : '',
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
 
