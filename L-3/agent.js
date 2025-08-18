@@ -4,9 +4,26 @@ import OpenAI from 'openai'
 //chain of toughts prompting-
 
 const client = new OpenAI({
-    apiKey: 'AIzaSyAI4IvYDGwmp8IcpBokaBO6Dmiyquoj0ak',
+    apiKey: '',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
 })
+
+async function safeCall(fn, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err.status === 429) {
+        console.log("Rate limited. Waiting 2s...");
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Failed after retries");
+}
+
 
 async function getWeatherDetailsByCity(cityName = '') {
     const url = `https://fr.wttr.in/${cityName.toLowerCase()}?format=%t`
@@ -62,14 +79,18 @@ async function main() {
     `
     const messages = [
         { role: 'system', content: system_prompt },
-        { role: 'user', content: 'what is the weather of kolkata' }
+        { role: 'user', content: 'hi, hru' }
     ]
 
     while (true) {
-        const response = await client.chat.completions.create({
-            model: 'gemini-2.0-flash',
-            messages
-        })
+       
+        const response = await safeCall(() =>
+  client.chat.completions.create({
+    model: "gemini-2.0-flash",
+    messages
+  })
+);
+
 
         // const content = response.choices?.[0]?.message?.content
 
