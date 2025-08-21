@@ -1,14 +1,28 @@
 import OpenAI from 'openai'
 
+
 //chain of toughts prompting-
 
 const client = new OpenAI({
-    apiKey: '',
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+  apiKey: 'AIzaSyCEd4x5AgoetFcx-u9-dJtCBbsmwEFHTt4',
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
 })
 
-async function main() {
-    const system_prompt = `
+async function getWeatherDetailsByCity (cityName = '') {
+  const url = `https://fr.wttr.in/${cityName.toLowerCase()}?format=%t`
+
+  const response = await fetch(url)
+  const data = await response.text()
+
+  return `The Current Weather of ${cityName} is ${data}`
+}
+
+const TOOL_MAP = {
+  getWeatherDetailsByCity: getWeatherDetailsByCity
+}
+
+async function main () {
+  const system_prompt = `
        You are an AI assistant who works on START, THINK and OUTPUT format.
     For a given user query first think and breakdown the problem into sub problems.
     You should always keep thinking and thinking before giving the actual output.
@@ -18,78 +32,124 @@ async function main() {
     
     For every tool call that you make, wait for the OBSERVATION from the tool which is the
     response from the tool that you called.
+
+    Available Tools:
+    - getWeatherDetailsByCity(cityname: string): Returns a string of the current weather data of the city.
     
     Rules:
     - Strictly follow the output JSON format
     - Always follow the output in sequence that is START, THINK, OBSERVE and OUTPUT.
-    - Always perform only one step at a time and wait for other step.
+    - Always perform ONLY AND ONLY ONE STEP AT A TIME and wait for other step.
+    - Always wait for the next step until I add the prevous step
     - Alway make sure to do multiple steps of thinking before giving out output.
-    - For every tool call always wait for the OBSERVE which contains the output from tool
+    - For every tool call always wait for the OBSERVE which contains the output from tool.
+    - Never write explanations or text outside JSON.
+    - If you cannot comply, still output valid JSON with { "step": "OUTPUT", "content": "error" }.
     
+    
+    Available Tools: 
+
+
         Output JSON Format:
         { "step": "START | THINK | OUTPUT", "content": "string" }
+    Example:
+        User: Hey, How are you?
+        ASSISTANT: { "step": "START", "content": "The user is asking how I am." } now you will start here Untill the system added this object into your context. then you will give me the next json
+        ASSISTANT: { "step": "THINK", "content": "I should answer the user nicely" }
+        ASSISTANT: { "step": "OUTPUT", "content": "I am good, thanks for asking!" }
+
+    Example:
+    User: Hey, can you tell me weather of Patiala?
+    ASSISTANT: { "step": "START", "content": "The user is intertested in the current weather details about Patiala" } 
+    ASSISTANT: { "step": "THINK", "content": "Let me see if there is any available tool for this query" } 
+    ASSISTANT: { "step": "THINK", "content": "I see that there is a tool available getWeatherDetailsByCity which returns current weather data" } 
+    ASSISTANT: { "step": "THINK", "content": "I need to call getWeatherDetailsByCity for city patiala to get weather details" }
+    ASSISTANT: { "step": "TOOL", "input": "patiala", "tool_name": "getWeatherDetailsByCity" }
+    After TOOL step and after OBSERVE step, you must still respond with valid JSON in the required format.
+    Never return an empty response. If unsure, output { "step": "OUTPUT", "content": "error: empty" }.
+
+    DEVELOPER: { "step": "OBSERVE", "content": "The weather of patiala is cloudy with 27 Cel" }
+    ASSISTANT: { "step": "THINK", "content": "Great, I got the weather details of Patiala" }
+    ASSISTANT: { "step": "OUTPUT", "content": "The weather in Patiala is 27 C with little cloud. Please make sure to carry an umbrella with you. ☔️" } 
     
-    // Example:
-    //     User: Hey, can you tell me weather of Patiala?
-    //     ASSISTANT: { "step": "START", "content": "The user is intertested in the current weather details about Patiala" } 
-    //     ASSISTANT: { "step": "THINK", "content": "Let me see if there is any available tool for this query" } 
-    //     ASSISTANT: { "step": "THINK", "content": "I see that there is a tool available getWeatherDetailsByCity which returns current weather data" } 
-    //     ASSISTANT: { "step": "THINK", "content": "I need to call getWeatherDetailsByCity for city patiala to get weather details" }
-    //     ASSISTANT: { "step": "TOOL", "input": "patiala", "tool_name": "getWeatherDetailsByCity" }
-    //     DEVELOPER: { "step": "OBSERVE", "content": "The weather of patiala is cloudy with 27 Cel" }
-    //     ASSISTANT: { "step": "THINK", "content": "Great, I got the weather details of Patiala" }
-    //     ASSISTANT: { "step": "OUTPUT", "content": "The weather in Patiala is 27 C with little cloud. Please make sure to carry an umbrella with you. ☔️" }
-  
     `
-    const messages = [
-        { role: 'system', content: system_prompt },
-        { role: 'user', content: 'hii hru?' }
-    ]
+  const messages = [
+    { role: 'system', content: system_prompt },
+    { role: 'user', content: 'what is the weather of kolkata??' }
+  ]
 
-    while (true) {
-        const response = await client.chat.completions.create({
-            model: 'gemini-1.5-flash',
-            messages
-        })
+  while (true) {
+    const response = await client.chat.completions.create({
+      model: 'gemini-2.5-flash',
+      messages
+    })
 
-        const content = response.choices?.[0]?.message?.content
-        if (!content) {
-            console.error('No content returned:', JSON.stringify(response, null, 2))
-            break
-        }
+    const choice = response.choices?.[0]
+    let rawData = choice?.message?.content
 
-        const cleaned = content
-            .replace(/^```(?:json)?\n?/i, '')
-            .replace(/```$/, '')
-            .trim()
-
-        let parsed
-        try {
-            parsed = JSON.parse(cleaned)
-        } catch (e) {
-            console.error('Invalid JSON:', cleaned)
-            break
-        }
-
-        messages.push({ role: 'assistant', content: JSON.stringify(parsed) })
-
-        if (parsed.step === 'START') {
-            console.log('🔥', parsed.content)
-            messages.push({ role: 'user', content: 'Continue with THINK step.' })
-            continue
-        }
-
-        if (parsed.step === 'THINK') {
-            console.log('🧠', parsed.content)
-            messages.push({ role: 'user', content: 'EVALUATE' })
-            continue
-        }
-
-        if (parsed.step === 'OUTPUT') {
-            console.log('🤖', parsed.content)
-            break
-        }
+    if (!rawData) {
+      console.error('Empty Gemini output, nudging with continuation...')
+      messages.push({
+        role: 'user',
+        content: 'Continue with THINK step based on the OBSERVE data.'
+      })
+      continue // go back to loop
     }
+
+    console.log('rawdata->', rawData)
+
+    let parsed
+    try {
+      parsed = JSON.parse(rawData)
+    } catch {
+      console.error('Invalid JSON:', rawData)
+      parsed = { step: 'OUTPUT', content: 'error: invalid JSON' }
+    }
+    // AI hallucinations! gemini wasn't genrating the content part after TOOL step. 
+
+    messages.push({ role: 'assistant', content: JSON.stringify(parsed) })
+
+    if (parsed.step === 'START') {
+      console.log('🔥', parsed.content)
+      messages.push({ role: 'user', content: 'Continue with THINK step.' })
+      continue
+    }
+
+    if (parsed.step === 'THINK') {
+      console.log('🧠', parsed.content)
+      messages.push({ role: 'user', content: 'EVALUATE' })
+      continue
+    }
+
+    if (parsed.step === 'TOOL') {
+      const toolToCall = parsed.tool_name
+
+      if (!TOOL_MAP[toolToCall]) {
+        messages.push({
+          role: 'developer',
+          content: `there is no such tool as ${toolToCall}`
+        })
+        continue
+      }
+
+      const responseFromTool = await TOOL_MAP[toolToCall](parsed.input)
+
+      console.log(`🛠️: ${toolToCall}(${parsed.input}) = `, responseFromTool)
+      messages.push({
+        role: 'developer',
+        content: JSON.stringify({ step: 'OBSERVE', content: responseFromTool })
+      })
+
+      continue
+    }
+
+    if (parsed.step === 'OUTPUT' || 'FINISH') {
+      console.log('🤖', parsed.content)
+      break
+    }
+  }
+
+  console.log('done..')
 }
 
 main()
