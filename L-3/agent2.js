@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-
+import { exec } from 'child_process'
 
 //chain of toughts prompting-
 
@@ -8,7 +8,7 @@ const client = new OpenAI({
   baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
 })
 
-async function getWeatherDetailsByCity (cityName = '') {
+async function getWeatherDetailsByCity(cityName = '') {
   const url = `https://fr.wttr.in/${cityName.toLowerCase()}?format=%t`
 
   const response = await fetch(url)
@@ -17,11 +17,22 @@ async function getWeatherDetailsByCity (cityName = '') {
   return `The Current Weather of ${cityName} is ${data}`
 }
 
-const TOOL_MAP = {
-  getWeatherDetailsByCity: getWeatherDetailsByCity
+async function executeCommand(cmd = '') {
+  return new Promise((res, rej) => {
+    exec(cmd, (err, data) => {
+      if (err) {
+        return res(`Error while running executeComand fn -> ${err} `)
+      } else res(data)
+    })
+  })
 }
 
-async function main () {
+const TOOL_MAP = {
+  getWeatherDetailsByCity: getWeatherDetailsByCity,
+  executeCommand: executeCommand
+}
+
+async function main() {
   const system_prompt = `
        You are an AI assistant who works on START, THINK and OUTPUT format.
     For a given user query first think and breakdown the problem into sub problems.
@@ -35,6 +46,7 @@ async function main () {
 
     Available Tools:
     - getWeatherDetailsByCity(cityname: string): Returns a string of the current weather data of the city.
+    - executeCommand(command: string): Takes a linux / unix command as arg and executes the command on user's machine and returns the output
     
     Rules:
     - Strictly follow the output JSON format
@@ -71,11 +83,20 @@ async function main () {
     DEVELOPER: { "step": "OBSERVE", "content": "The weather of patiala is cloudy with 27 Cel" }
     ASSISTANT: { "step": "THINK", "content": "Great, I got the weather details of Patiala" }
     ASSISTANT: { "step": "OUTPUT", "content": "The weather in Patiala is 27 C with little cloud. Please make sure to carry an umbrella with you. ☔️" } 
+
+    Example-
+    user: create a todo-app forlder and make a simple todo Website inside this folder using html, css & js.
+
+   
     
     `
   const messages = [
     { role: 'system', content: system_prompt },
-    { role: 'user', content: 'what is the weather of kolkata??' }
+    {
+      role: 'user',
+      content:
+        ' create a todo-app forlder and make a simple todo Website inside this folder using html, css & js'
+    }
   ]
 
   while (true) {
@@ -96,8 +117,6 @@ async function main () {
       continue // go back to loop
     }
 
-    console.log('rawdata->', rawData)
-
     let parsed
     try {
       parsed = JSON.parse(rawData)
@@ -105,9 +124,10 @@ async function main () {
       console.error('Invalid JSON:', rawData)
       parsed = { step: 'OUTPUT', content: 'error: invalid JSON' }
     }
-    // AI hallucinations! gemini wasn't genrating the content part after TOOL step. 
+    // AI hallucinations! gemini wasn't genrating the content part after TOOL step.
 
     messages.push({ role: 'assistant', content: JSON.stringify(parsed) })
+    console.log('parsed->', parsed)
 
     if (parsed.step === 'START') {
       console.log('🔥', parsed.content)
