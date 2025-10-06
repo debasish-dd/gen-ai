@@ -8,15 +8,15 @@ export async function POST(request) {
     try {
         const { message } = await request.json()
 
-        console.log("Received from client:", message);
-
-
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4.1-nano',
-            messages: [
+        const messages = [
                 { role: "system", content: "You are a helpful assistant." },
                 { role: "user", content: message },
-            ],
+            ]
+
+            
+        const response = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: messages ,
         })
 
         return Response.json({

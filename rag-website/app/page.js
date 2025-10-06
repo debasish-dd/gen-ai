@@ -10,20 +10,37 @@ export default function Home() {
     { sender: "ai", text: "how can I help u today" }
   ]);
 
-  const [aiResponse, setAiResponse] = useState('')
 
-  async function chatHandler() {
-    const { data } = await axios.post("/api/chat", {
-      message: JSON.stringify({ userMessage }),
-    });
-    console.log(data.response);
-    setMessages((prev) => [
-      ...prev,
-      { sender: "user", text: userMessage },
-      { sender: "ai", text: data.response }
-    ]);
-    setUserMessage(""); // clear input
+  async function chatHandler(e) {
+    e.preventDefault()
+    if (!userMessage) {
+      return;
+    }
+    const newUserMessage = { sender: "user", text: userMessage }
+    setMessages((prev)=>[...prev , newUserMessage])
 
+    const currMessage = userMessage;
+    setUserMessage('')
+
+    try {
+
+      const { data } = await axios.post("/api/chat", {
+        message: currMessage,
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        { sender: "ai", text: data.response }
+      ]);
+      console.log('from page->', messages);
+
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages((prev) => [
+        ...prev,
+        { sender: "ai", text: "Sorry, there was an error processing your request." }
+      ]);
+    }
 
   }
 
@@ -34,8 +51,8 @@ export default function Home() {
         <h1 >Rag Website Project</h1>
       </div>
 
-      <div className="flex justify-end m-2 max-h-1/2 h-150">
-        <div className="bg-gray-600 shadow-lg w-90 p-2 rounded-lg m-3 flex flex-col">
+      <div className="flex justify-end m-2 max-h-1/2 h-150 ">
+        <div className="bg-gray-600 shadow-lg w-90 p-2 rounded-lg m-3 flex flex-col overflow-auto">
           <div className="w-full bg-gray-500 rounded border-transparent flex-1 p-2">
             {messages.map((m, i) => (
               <p key={i} className={m.sender === "ai" ? "text-yellow-200" : "text-white text-right"}>
@@ -45,7 +62,8 @@ export default function Home() {
             ))}
 
           </div>
-          <div className=" flex items-center p-2 rounded-b-lg">
+        </div>
+          <form className=" flex items-center p-2 rounded-b-lg">
             <input
               value={userMessage}
               onChange={(e) => setUserMessage(e.target.value)}
@@ -53,8 +71,8 @@ export default function Home() {
             <button
               onClick={chatHandler}
               className="ml-2 px-3 py-1 bg-blue-700 hover:bg-blue-600 cursor-pointer text-white rounded">Send</button>
-          </div>
-        </div>
+          </form>
+
       </div>
     </div>
   );
