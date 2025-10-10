@@ -1,44 +1,46 @@
 'use client'
 import axios from "axios";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export default function Home() {
 
   const [userMessage, setUserMessage] = useState('');
   const [messages, setMessages] = useState([
-    { sender: "ai", text: "how can I help u today" }
+    { role: "assistant", content: "how can I help u today" }
   ]);
 
 
   async function chatHandler(e) {
     e.preventDefault()
-    if (!userMessage) {
+
+    if (!userMessage.trim()) {
       return;
     }
-    const newUserMessage = { sender: "user", text: userMessage }
-    setMessages((prev)=>[...prev , newUserMessage])
-
-    const currMessage = userMessage;
+    const newUserMessage = { role: "user", content: userMessage }
+    const updatedMessages = [...messages, newUserMessage];
+    
+    setMessages(updatedMessages)
     setUserMessage('')
 
     try {
 
       const { data } = await axios.post("/api/chat", {
-        message: currMessage,
+        messages: updatedMessages,
       });
 
+      
       setMessages((prev) => [
         ...prev,
-        { sender: "ai", text: data.response }
+        { role: "assistant", content: data.response }
       ]);
-      console.log('from page->', messages);
+
+      
 
     } catch (error) {
-      console.error('Error:', error);
+     console.error('Error:', error);
       setMessages((prev) => [
         ...prev,
-        { sender: "ai", text: "Sorry, there was an error processing your request." }
+        { role: "assistant", content: "Sorry, there was an error processing your request." }
       ]);
     }
 
@@ -46,33 +48,40 @@ export default function Home() {
 
   return (
     <div>
-
-      <div className=" text-center" >
-        <h1 >Rag Website Project</h1>
+      <div className="text-center p-4">
+        <h1 className="text-2xl font-bold">Chat with AI Assistant</h1>
       </div>
 
-      <div className="flex justify-end m-2 max-h-1/2 h-150 ">
-        <div className="bg-gray-600 shadow-lg w-90 p-2 rounded-lg m-3 flex flex-col overflow-auto">
-          <div className="w-full bg-gray-500 rounded border-transparent flex-1 p-2">
-            {messages.map((m, i) => (
-              <p key={i} className={m.sender === "ai" ? "text-yellow-200" : "text-white text-right"}>
-                {m.sender === "ai" ? "AI> " : "You> "}
-                {m.text}
-              </p>
-            ))}
-
-          </div>
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="bg-gray-600 shadow-lg rounded-lg p-4 h-96 overflow-auto mb-4">
+          {messages.map((msg, i) => (
+            <div key={i} className={`mb-2 ${msg.role === "user" ? "text-right" : ""}`}>
+              <span className={`inline-block p-2 rounded-lg ${
+                msg.role === "user" 
+                  ? "bg-blue-600 text-white" 
+                  : "bg-gray-700 text-yellow-200"
+              }`}>
+                <strong>{msg.role === "user" ? "You: " : "AI: "}</strong>
+                {msg.content}
+              </span>
+            </div>
+          ))}
         </div>
-          <form className=" flex items-center p-2 rounded-b-lg">
-            <input
-              value={userMessage}
-              onChange={(e) => setUserMessage(e.target.value)}
-              className="flex-1 p-1  rounded border" />
-            <button
-              onClick={chatHandler}
-              className="ml-2 px-3 py-1 bg-blue-700 hover:bg-blue-600 cursor-pointer text-white rounded">Send</button>
-          </form>
-
+        
+        <form onSubmit={chatHandler} className="flex gap-2">
+          <input
+            value={userMessage}
+            onChange={(e) => setUserMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 p-2 rounded border border-gray-300"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+          >
+            Send
+          </button>
+        </form>
       </div>
     </div>
   );
