@@ -51,8 +51,13 @@ export default function Home() {
       <div className="text-center p-4">
         <h1 className="text-2xl font-bold">Chat with AI Assistant</h1>
       </div>
+      <div className="flex justify-around flex-wrap cursor-pointer">
 
-      <div className="max-w-4xl mx-auto p-4">
+      <div className="bg-gray-600 m-auto h-60 w-100 flex justify-center items-center p-3 rounded-lg shadow-lg">
+        <input  type='file'/>
+      </div>
+
+      <div className="w-4xl mx-auto p-4">
         <div className="bg-gray-600 shadow-lg rounded-lg p-4 h-96 overflow-auto mb-4">
           {messages.map((msg, i) => (
             <div key={i} className={`mb-2 ${msg.role === "user" ? "text-right" : ""}`}>
@@ -83,6 +88,8 @@ export default function Home() {
           </button>
         </form>
       </div>
+      </div>
+
     </div>
   );
 }
