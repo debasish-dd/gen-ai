@@ -5,20 +5,31 @@ import { toast } from 'react-toastify';
 
 export default function FileDropzone({ onFiles }) {
   const onDrop = useCallback((acceptedFiles) => {
-    onFiles(acceptedFiles);
+    if (acceptedFiles>0) {
+      onFiles(acceptedFiles);
+      toast.success('File uploaded successfully.',{ position: "top-center" });
+    }
   }, [onFiles]);
+
+
 
   const onDropRejected = useCallback((fileRejections) => {
     if (fileRejections.length === 0) return;
 
-    fileRejections.forEach(({ errors }) => {
-      errors.forEach(error => {
-        if (error.code === "too-many-files")
-          toast.error("You can only upload one file at a time.");
-        if (error.code === "file-too-large")
-          toast.error("File size exceeds the 2MB limit.");
-      });
+     const errorTypes = new Set();
+  
+  fileRejections.forEach(({ errors }) => {
+    errors.forEach(error => {
+      errorTypes.add(error.code);
     });
+  });
+   if (errorTypes.has("too-many-files")) {
+    toast.error("You can only upload one file at a time.", { position: "top-center" });
+  } else if (errorTypes.has("file-too-large")) {
+    toast.error("File size exceeds the 2MB limit.", { position: "top-center" });
+  } else if (errorTypes.has("file-invalid-type")) {
+    toast.error("Invalid file type. Only PDF, CSV, PPT, and DOC files are allowed.", { position: "top-center" });
+  }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

@@ -63,13 +63,14 @@ export default function Home() {
         {/* dropzone */}
         <div className="flex flex-col items-center">
           <FileDropzone onFiles={handleFiles} />
-        { fileAvailable && ( <div className="relative ml-8 bg-gray-600 text-center w-60 p-4 rounded-lg shadow-md">
+        { fileAvailable && ( <div className="relative ml-8 bg-gray-600 text-center w-80 p-4 rounded-lg shadow-md">
             <button
               onClick={() => {
                 setFiles([]);
                 setFileAvailable(false);
                }}
-              className="absolute top-2 right-2 text-white hover:text-gray-300 transition-colors"
+
+              className="absolute top-2 right-2 text-white hover:text-gray-400 hover:scale-120 transition-transform duration-100 cursor-pointer"
             >
               <svg
                 className="w-5 h-5"
@@ -86,7 +87,7 @@ export default function Home() {
               </svg>
             </button>
 
-            <h2 className="text-xl font-semibold">Uploaded File:</h2>
+            <h2 className="text-xl font-semibold text-wrap">Uploaded File:</h2>
             name: {files[0]?.name}
             <br />
             size: {((files[0]?.size) / (1024 * 1024)).toFixed(3)} mb
@@ -94,7 +95,7 @@ export default function Home() {
 
         </div>
 
-
+               {/* chat section */}
        <div className="p-2 md:p-4 flex flex-col items-center w-full md:w-auto px-4 md:px-0">
           <div className="bg-gray-600 shadow-lg rounded-lg p-3 md:p-4 h-96 md:h-[28rem] overflow-auto mb-4 w-full md:w-[32rem]">
             {messages.map((msg, i) => (
