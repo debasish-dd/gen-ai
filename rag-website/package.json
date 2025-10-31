@@ -8,9 +8,16 @@
     "start": "next start"
   },
   "dependencies": {
+    "@langchain/openai": "^1.0.0",
+    "@langchain/qdrant": "^1.0.0",
     "axios": "^1.12.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "langchain": "^1.0.2",
+    "multer": "^2.0.2",
     "next": "15.5.4",
     "openai": "^6.0.0",
+    "qdrant-client": "^0.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-dropzone": "^14.3.8",
