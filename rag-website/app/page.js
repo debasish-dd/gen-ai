@@ -1,7 +1,8 @@
 'use client'
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import FileDropzone from "./components/FileDropzone";
+import { toast, Toaster } from 'react-hot-toast';
 
 export default function Home() {
 
@@ -11,10 +12,36 @@ export default function Home() {
   ]);
   const [files, setFiles] = useState([]);
   const [fileAvailable, setFileAvailable] = useState(false)
+  const [uploading, setUploading] = useState(false);
 
-  const handleFiles = (acceptedFiles) => {
+  const handleFiles = async (acceptedFiles) => {
     setFiles(acceptedFiles);
     setFileAvailable(true);
+    await uploadFiles(acceptedFiles)
+  };
+
+ const uploadFiles = async (files) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      files.forEach(f => formData.append('files', f));
+
+      console.log('Uploading files...', files); // Debug log
+
+      const { data } = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Upload response:', data); // Debug log
+      toast.success(`Uploaded! Processed ${data.chunks} chunks`);
+    } catch (err) {
+      console.error('Upload error:', err.response?.data || err.message); // Better error logging
+      toast.error(err.response?.data?.error || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   async function chatHandler(e) {
@@ -55,6 +82,7 @@ export default function Home() {
 
   return (
     <div>
+      <Toaster position="top-center" />
       <div className="text-center p-4">
         <h1 className="text-2xl font-bold">Chat with AI Assistant</h1>
       </div>
@@ -63,12 +91,12 @@ export default function Home() {
         {/* dropzone */}
         <div className="flex flex-col items-center">
           <FileDropzone onFiles={handleFiles} />
-        { fileAvailable && ( <div className="relative ml-8 bg-gray-600 text-center w-80 p-4 rounded-lg shadow-md">
+          {fileAvailable && (<div className="relative ml-8 bg-gray-600 text-center w-80 p-4 rounded-lg shadow-md">
             <button
               onClick={() => {
                 setFiles([]);
                 setFileAvailable(false);
-               }}
+              }}
 
               className="absolute top-2 right-2 text-white hover:text-gray-400 hover:scale-120 transition-transform duration-100 cursor-pointer"
             >
@@ -92,11 +120,15 @@ export default function Home() {
             <br />
             size: {((files[0]?.size) / (1024 * 1024)).toFixed(3)} mb
           </div>)}
-
+              {uploading && (
+                <span className="text-yellow-300 mt-2 block animate-pulse">
+                  ⏳ Processing...
+                </span>
+              )}
         </div>
 
-               {/* chat section */}
-       <div className="p-2 md:p-4 flex flex-col items-center w-full md:w-auto px-4 md:px-0">
+        {/* chat section */}
+        <div className="p-2 md:p-4 flex flex-col items-center w-full md:w-auto px-4 md:px-0">
           <div className="bg-gray-600 shadow-lg rounded-lg p-3 md:p-4 h-96 md:h-[28rem] overflow-auto mb-4 w-full md:w-[32rem]">
             {messages.map((msg, i) => (
               <div key={i} className={`mb-2 ${msg.role === "user" ? "text-right" : ""}`}>

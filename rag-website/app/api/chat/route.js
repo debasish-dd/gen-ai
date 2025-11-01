@@ -32,7 +32,7 @@ export async function POST(request) {
             );
         }
         let context = "";
-        let sources = [];
+       
 
         try {
             //setting up qdrant vector store
@@ -47,7 +47,7 @@ export async function POST(request) {
             });
             const relevantChunks = await vectorSerarcher.invoke(lastUserMessage);
 
-            context = relevantChunks;
+            context = relevantChunks.map(doc => doc.pageContent).join('\n\n');
         } catch (retrievalError) {
             console.log("No documents found or retrieval error:", retrievalError.message);
         }

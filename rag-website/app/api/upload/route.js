@@ -25,16 +25,23 @@ export async function POST(request) {
     try {
         const formData = await request.formData();
         const file = formData.get('files');
-        if (!file || file.length === 0) {
+
+        // Correct file validation
+        if (!file || !(file instanceof File) || file.size === 0) {
             return Response.json(
-                { error: 'No file uploaded' },
+                { error: 'No valid file uploaded' },
                 { status: 400 }
             );
         }
+
         const extension = path.extname(file.name).toLowerCase();
         const loaderClass = LOADER_MAP[extension];
+
         if (!loaderClass) {
-            throw new Error(`Unsupported file type: ${extension}`);
+            return Response.json(
+                { error: `Unsupported file type: ${extension}` },
+                { status: 400 }
+            );
         }
 
         const bytes = await file.arrayBuffer();
@@ -42,28 +49,39 @@ export async function POST(request) {
         await writeFile(tempPath, Buffer.from(bytes));
 
         try {
-            const loader = new loaderClass(tempPath)
-            const docs = await loader.load()
+            const loader = new loaderClass(tempPath);
+            const docs = await loader.load();
+
+            // Add text splitting
+            const textSplitter = new RecursiveCharacterTextSplitter({
+                chunkSize: 1000,
+                chunkOverlap: 200,
+            });
+            const splitDocs = await textSplitter.splitDocuments(docs);
+
             const embeddings = new OpenAIEmbeddings({
                 modelName: "text-embedding-3-large",
                 openAIApiKey: process.env.OPENAI_API_KEY,
             });
-            await QdrantVectorStore.fromDocuments(docs, embeddings, {
+
+            await QdrantVectorStore.fromDocuments(splitDocs, embeddings, {
                 url: process.env.QDRANT_URL,
                 apiKey: process.env.QDRANT_API_KEY,
                 collectionName: 'documents',
-            })
+            });
+
             return Response.json({
                 success: true,
-                chunks: docs.length,
+                chunks: splitDocs.length,
             });
 
         } finally {
             await unlink(tempPath);
         }
     } catch (error) {
-        console.error('Error:', error);
-        return Response.json({ error: error.message }, { status: 500 });
-
+        console.error('Upload Error:', error);
+        return Response.json({
+            error: error.message
+        }, { status: 500 });
     }
 }
