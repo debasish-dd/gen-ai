@@ -1,8 +1,8 @@
 'use client'
 import axios from "axios";
 import { useState } from "react";
+import { toast } from 'react-toastify'; // ✅ Changed this
 import FileDropzone from "./components/FileDropzone";
-import { toast, Toaster } from 'react-hot-toast';
 
 export default function Home() {
 
@@ -11,64 +11,63 @@ export default function Home() {
     { role: "assistant", content: "how can I help u today" }
   ]);
   const [files, setFiles] = useState([]);
-  const [fileAvailable, setFileAvailable] = useState(false)
+  const [fileAvailable, setFileAvailable] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const handleFiles = async (acceptedFiles) => {
+    console.log('🔍 handleFiles called');
+    console.log('📁 Files received:', acceptedFiles);
+    
     setFiles(acceptedFiles);
     setFileAvailable(true);
-    await uploadFiles(acceptedFiles)
+    await uploadFiles(acceptedFiles);
   };
 
- const uploadFiles = async (files) => {
+  const uploadFiles = async (files) => {
+    console.log('⬆️ uploadFiles called with:', files);
     setUploading(true);
+    
     try {
       const formData = new FormData();
       files.forEach(f => formData.append('files', f));
 
-      console.log('Uploading files...', files); // Debug log
+      const { data } = await axios.post('/api/upload', formData);
 
-      const { data } = await axios.post('/api/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      toast.success(`Uploaded! Processed ${data.chunks} chunks`, { 
+        position: "top-center" 
       });
-
-      console.log('Upload response:', data); // Debug log
-      toast.success(`Uploaded! Processed ${data.chunks} chunks`);
     } catch (err) {
-      console.error('Upload error:', err.response?.data || err.message); // Better error logging
-      toast.error(err.response?.data?.error || 'Upload failed');
+      console.error('Upload error:', err);
+      toast.error(err.response?.data?.error || 'Upload failed', { 
+        position: "top-center" 
+      });
     } finally {
       setUploading(false);
     }
   };
 
   async function chatHandler(e) {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!userMessage.trim()) {
       return;
     }
-    const newUserMessage = { role: "user", content: userMessage }
+    
+    const newUserMessage = { role: "user", content: userMessage };
     const updatedMessages = [...messages, newUserMessage];
 
-    setMessages(updatedMessages)
-    setUserMessage('')
+    setMessages(updatedMessages);
+    setUserMessage('');
 
     try {
-
       const { data } = await axios.post("/api/chat", {
         messages: updatedMessages,
       });
-
 
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data.response }
       ]);
-
-
 
     } catch (error) {
       console.error('Error:', error);
@@ -77,12 +76,10 @@ export default function Home() {
         { role: "assistant", content: "Sorry, there was an error processing your request." }
       ]);
     }
-
   }
 
   return (
     <div>
-      <Toaster position="top-center" />
       <div className="text-center p-4">
         <h1 className="text-2xl font-bold">Chat with AI Assistant</h1>
       </div>
@@ -91,40 +88,41 @@ export default function Home() {
         {/* dropzone */}
         <div className="flex flex-col items-center">
           <FileDropzone onFiles={handleFiles} />
-          {fileAvailable && (<div className="relative ml-8 bg-gray-600 text-center w-80 p-4 rounded-lg shadow-md">
-            <button
-              onClick={() => {
-                setFiles([]);
-                setFileAvailable(false);
-              }}
-
-              className="absolute top-2 right-2 text-white hover:text-gray-400 hover:scale-120 transition-transform duration-100 cursor-pointer"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          {fileAvailable && (
+            <div className="relative ml-8 bg-gray-600 text-center w-80 p-4 rounded-lg shadow-md">
+              <button
+                onClick={() => {
+                  setFiles([]);
+                  setFileAvailable(false);
+                }}
+                className="absolute top-2 right-2 text-white hover:text-gray-400 hover:scale-120 transition-transform duration-100 cursor-pointer"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
 
-            <h2 className="text-xl font-semibold text-wrap">Uploaded File:</h2>
-            name: {files[0]?.name}
-            <br />
-            size: {((files[0]?.size) / (1024 * 1024)).toFixed(3)} mb
-          </div>)}
-              {uploading && (
-                <span className="text-yellow-300 mt-2 block animate-pulse">
-                  ⏳ Processing...
-                </span>
-              )}
+              <h2 className="text-xl font-semibold text-wrap">Uploaded File:</h2>
+              name: {files[0]?.name}
+              <br />
+              size: {((files[0]?.size) / (1024 * 1024)).toFixed(3)} mb
+            </div>
+          )}
+          {uploading && (
+            <span className="text-yellow-300 mt-2 block animate-pulse">
+              ⏳ Processing...
+            </span>
+          )}
         </div>
 
         {/* chat section */}
@@ -132,10 +130,11 @@ export default function Home() {
           <div className="bg-gray-600 shadow-lg rounded-lg p-3 md:p-4 h-96 md:h-[28rem] overflow-auto mb-4 w-full md:w-[32rem]">
             {messages.map((msg, i) => (
               <div key={i} className={`mb-2 ${msg.role === "user" ? "text-right" : ""}`}>
-                <span className={`inline-block p-2 rounded-lg ${msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-700 text-yellow-200"
-                  }`}>
+                <span className={`inline-block p-2 rounded-lg ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-yellow-200"
+                }`}>
                   <strong>{msg.role === "user" ? "You: " : "AI: "}</strong>
                   {msg.content}
                 </span>
@@ -159,7 +158,6 @@ export default function Home() {
           </form>
         </div>
       </div>
-
     </div>
   );
 }
